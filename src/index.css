@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* 다크 모드 기본: html.dark 클래스 기반 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Pretendard", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", Consolas, monospace;
+  --color-lab-bg: #0b1020;
+  --color-lab-panel: #121a2e;
+  --color-lab-border: #1f2a44;
+  --color-lab-accent: #22d3ee;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply min-h-screen bg-lab-bg text-slate-200 antialiased;
+}
