@@ -12,6 +12,7 @@ import { useSaveData } from './hooks/useSaveData'
 const PeriodicPuzzle = lazy(() => import('./features/puzzle/PeriodicPuzzle').then((m) => ({ default: m.PeriodicPuzzle })))
 const VirtualLab = lazy(() => import('./features/lab/VirtualLab').then((m) => ({ default: m.VirtualLab })))
 const MoleculeDex = lazy(() => import('./features/molecules/MoleculeDex').then((m) => ({ default: m.MoleculeDex })))
+const OrbitalViewer = lazy(() => import('./features/orbitals/OrbitalViewer').then((m) => ({ default: m.OrbitalViewer })))
 
 function Loading() {
   return (
@@ -51,6 +52,7 @@ function App() {
               {tab === 'puzzle' && <PeriodicPuzzle onGoToToday={() => setTab('today')} />}
               {tab === 'lab' && <VirtualLab onGoToMolecules={() => setTab('molecules')} />}
               {tab === 'molecules' && <MoleculeDex onGoToLab={() => setTab('lab')} />}
+              {tab === 'orbitals' && <OrbitalViewer />}
             </Suspense>
           </motion.div>
         </AnimatePresence>
