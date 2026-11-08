@@ -184,7 +184,7 @@ export function MoleculeDex({ onGoToLab }: { onGoToLab: () => void }) {
             {model ? (
               <Canvas
                 key={viewKey}
-                camera={{ position: [2.2, 1.6, 6.2], fov: 42 }}
+                camera={{ position: [2.4, 1.0, 6.9], fov: 42 }}
                 dpr={[1, 2]}
                 fallback={<p className="p-6 text-sm text-slate-400">이 브라우저는 WebGL을 지원하지 않아 3D 모형을 표시할 수 없어요.</p>}
               >

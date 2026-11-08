@@ -1,8 +1,9 @@
-import { Html, Line, OrbitControls } from '@react-three/drei'
+import { Line, OrbitControls } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { angleBetween, type Vec3, type VseprResult } from '../../utils/vseprCalculator'
+import { SpriteLabel } from '../../components/SpriteLabel'
 import { atomRadius, cpkColor, DIPOLE_COLOR, LONE_PAIR_COLOR, RADICAL_COLOR } from './cpk'
 
 const UP = new THREE.Vector3(0, 1, 0)
@@ -24,9 +25,7 @@ function AtomBall({ symbol, position, showLabel }: { symbol: string; position: V
         <meshStandardMaterial color={cpkColor(symbol)} roughness={0.35} metalness={0.1} />
       </mesh>
       {showLabel && (
-        <Html center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-          <span className="rounded bg-slate-950/70 px-1 text-xs font-bold text-white shadow">{symbol}</span>
-        </Html>
+        <SpriteLabel text={symbol} position={[0, 0, 0]} height={0.24} />
       )}
     </group>
   )
@@ -128,11 +127,7 @@ function AngleArc({ d1, d2, radius = 0.85 }: { d1: Vec3; d2: Vec3; radius?: numb
   return (
     <>
       <Line points={pts} color="#fde68a" lineWidth={2} dashed dashSize={0.06} gapSize={0.04} />
-      <Html position={mid} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-        <span className="rounded-md bg-amber-400/90 px-1.5 py-0.5 font-mono text-xs font-bold whitespace-nowrap text-slate-950 shadow">
-          {Math.round(angle * 10) / 10}°
-        </span>
-      </Html>
+      <SpriteLabel text={`${Math.round(angle * 10) / 10}°`} position={mid} color="#020617" background="rgba(251,191,36,0.92)" height={0.24} />
     </>
   )
 }
@@ -154,9 +149,7 @@ function DipoleArrow({ vector, magnitude }: { vector: Vec3; magnitude: number })
         <coneGeometry args={[0.1, 0.25, 20]} />
         <meshStandardMaterial color={DIPOLE_COLOR} emissive={DIPOLE_COLOR} emissiveIntensity={0.4} />
       </mesh>
-      <Html position={dir.clone().multiplyScalar(length + 0.25)} center zIndexRange={[20, 0]} style={{ pointerEvents: 'none' }}>
-        <span className="rounded bg-pink-500/90 px-1.5 text-xs font-bold whitespace-nowrap text-white">μ (δ⁻ 방향)</span>
-      </Html>
+      <SpriteLabel text="μ (δ⁻ 방향)" position={dir.clone().multiplyScalar(length + 0.3)} background="rgba(236,72,153,0.9)" height={0.22} />
     </group>
   )
 }
