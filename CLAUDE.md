@@ -107,7 +107,7 @@ src/
   types/        # chemistry.ts, save.ts 등 타입 정의
   data/         # elements.ts, molecules.ts 등 정적 데이터
   lib/          # storage.ts, 간격 반복·퀴즈·퍼즐 등 순수 함수
-  utils/        # chemistryEngine.ts(결합 엔진), molecule.ts(루이스 분석), vseprCalculator.ts(3D 좌표), vseprTable.ts, formula.ts — 순수 함수
+  utils/        # chemistryEngine.ts(결합 엔진), molecule.ts(루이스 분석), vseprCalculator.ts(3D 좌표), vseprTable.ts, orbital.ts(오비탈 파동함수), formula.ts — 순수 함수
   theme/        # categoryColors.ts 등 테마 토큰
   hooks/        # 커스텀 훅 (useSaveData 등)
   components/   # 재사용 UI 컴포넌트
@@ -133,13 +133,19 @@ src/
   - 비공유 전자쌍이 있는 분자는 표의 대표 결합각 대신 실측값(`EXPERIMENTAL_ANGLE`)이 있으면 그것으로 좌표를 만든다.
   - 원자 색은 `cpk.ts`의 CPK(Jmol) 표준, 구 크기는 공유 결합 반지름에 비례. Three.js 코드는 `@react-three/fiber` 선언형으로만 작성한다.
   - 도감 화면은 `React.lazy`로 지연 로딩한다. three 계열을 수동 청크로 쪼개면 첫 화면에서 preload되므로 쪼개지 않는다(`chunkSizeWarningLimit` 1100).
+- **오비탈** (`src/features/orbitals/`, 계산 `src/utils/orbital.ts`):
+  - 수소 원자 파동함수 ψ = R_nl·Y_lm(실수 구면 조화 함수)로 계산한다. n ≤ 7, l ≤ 3(s·p·d·f). 콘던-쇼틀리 위상은 생략해 px의 + 로브가 +x를 향하게 한다.
+  - 표현: 경계면 모형(|Y| 각도 곡면) / 전자 구름(|ψ|² 표본 점, 시드 고정) / 구름 단면(xz 평면). 위상 색은 `orbitalTheme.ts`의 `PHASE_COLOR`.
+  - 화학 좌표(z가 위)는 `toScene()`으로 Three.js 좌표(y가 위)로 바꾼다.
+- **3D 장면 라벨**: drei `<Html>`을 쓰지 않는다. 라벨마다 별도 React 루트를 만들어 React 19에서 탭 전환 시 앱 전체가 멈추는 문제가 있었다. 글자는 `src/components/SpriteLabel.tsx`(캔버스 텍스처 스프라이트)로 그린다.
+- **배포**: `main`에 push하면 `.github/workflows/deploy.yml`이 lint·build 후 GitHub Pages에 게시한다(`BASE_PATH=/<저장소 이름>/`). Vercel·로컬은 `BASE_PATH` 없이 `/`로 빌드된다. 경로를 하드코딩하지 말고 Vite `base`를 따른다.
 - **아이콘/이모지**: 기획서의 🔥⚡✨ 같은 이모지는 UI에 쓰지 않고 lucide 아이콘(`Flame`, `Zap`, `Sparkles`)으로 대체한다.
 
 ## 6. 코딩 규칙
 
 - TypeScript `strict` 유지, `any` 사용 금지 (불가피하면 사유 주석).
 - 함수형 컴포넌트 + 훅만 사용한다.
-- 화학 계산 로직(결합 판정, VSEPR 기하 결정 등)은 UI와 분리된 순수 함수로 `src/lib/`에 둔다.
+- 화학 계산 로직(결합 판정, VSEPR 기하 결정, 오비탈 등)은 UI와 분리된 순수 함수로 `src/utils/`(화학 엔진·VSEPR·오비탈)와 `src/lib/`(학습·퀴즈·퍼즐)에 둔다.
 - 커밋 전 `npm run build`(타입체크 포함)와 `npm run lint`(oxlint)가 통과해야 한다.
 
 ## 7. 명령어
