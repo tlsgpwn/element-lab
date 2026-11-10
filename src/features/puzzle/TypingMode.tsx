@@ -12,18 +12,31 @@ import { CATEGORY_THEME } from '../../theme/categoryColors'
 import { CompletePanel } from './CompletePanel'
 import { GameHud } from './GameHud'
 
+/** 정답 후 다음 칸으로 이동하는 순서 */
+export type TypingOrder = 'random' | 'sequential'
+
+/** 남은 빈칸 중 다음 칸 (무작위면 방금 칸을 제외하고 아무 칸, 순서면 다음 번호·순환) */
+function pickNext(open: number[], fromZ: number | null, order: TypingOrder): number | null {
+  if (open.length === 0) return null
+  if (order === 'sequential') return open.find((z) => fromZ === null || z > fromZ) ?? open[0]
+  const others = open.length > 1 ? open.filter((z) => z !== fromZ) : open
+  return others[Math.floor(Math.random() * others.length)]
+}
+
 interface TypingModeProps {
   range: PuzzleRange
+  order: TypingOrder
   pushToast: (t: Omit<Toast, 'id'>) => void
   onRestart: () => void
 }
 
-export function TypingMode({ range, pushToast, onRestart }: TypingModeProps) {
+export function TypingMode({ range, order, pushToast, onRestart }: TypingModeProps) {
   const targets = useMemo(() => Array.from({ length: range.to - range.from + 1 }, (_, i) => range.from + i), [range.from, range.to])
   const targetSet = useMemo(() => new Set(targets), [targets])
   const [filled, setFilled] = useState<Set<number>>(() => new Set())
   const [revealed, setRevealed] = useState<Set<number>>(() => new Set())
-  const [selectedZ, setSelectedZ] = useState<number | null>(null)
+  // 시작하자마자 칸 하나를 골라 두어 바로 입력할 수 있게 한다
+  const [selectedZ, setSelectedZ] = useState<number | null>(() => pickNext(targets, null, order))
   const [input, setInput] = useState('')
   const [lastCorrect, setLastCorrect] = useState<{ z: number; gained: number } | null>(null)
   const attempts = useRef(new Map<number, number>())
@@ -36,7 +49,14 @@ export function TypingMode({ range, pushToast, onRestart }: TypingModeProps) {
   const selected = selectedZ !== null ? ELEMENT_BY_Z.get(selectedZ) : undefined
 
   useEffect(() => {
-    if (selectedZ !== null) inputRef.current?.focus()
+    if (selectedZ === null) return
+    inputRef.current?.focus({ preventScroll: true })
+    // 무작위로 이동한 칸이 화면 밖(또는 아래 입력창 뒤)에 있으면 보이게 스크롤
+    const cell = document.querySelector<HTMLElement>(`[data-typing-cell="${selectedZ}"]`)
+    if (!cell) return
+    const r = cell.getBoundingClientRect()
+    const hidden = r.top < 80 || r.bottom > window.innerHeight - 150
+    cell.scrollIntoView({ block: hidden ? 'center' : 'nearest', inline: 'nearest', behavior: 'smooth' })
   }, [selectedZ])
 
   useEffect(() => {
@@ -47,10 +67,10 @@ export function TypingMode({ range, pushToast, onRestart }: TypingModeProps) {
 
   const isOpen = (z: number) => targetSet.has(z) && !filled.has(z) && !revealed.has(z)
 
-  /** 현재 칸 다음의 빈칸(원자 번호순, 순환)을 고른다 */
+  /** 다음 빈칸으로 이동 (order에 따라 무작위 / 번호 순서) */
   const advance = (fromZ: number, nextFilled: Set<number>, nextRevealed: Set<number>) => {
     const open = targets.filter((z) => !nextFilled.has(z) && !nextRevealed.has(z))
-    setSelectedZ(open.find((z) => z > fromZ) ?? open[0] ?? null)
+    setSelectedZ(pickNext(open, fromZ, order))
     setInput('')
   }
 
@@ -138,6 +158,7 @@ export function TypingMode({ range, pushToast, onRestart }: TypingModeProps) {
                     setInput('')
                   }}
                   aria-label={`${positionLabel(el)} 빈칸`}
+                  data-typing-cell={z}
                   className={`flex h-full w-full items-center justify-center rounded-md border border-dashed font-mono text-sm transition ${
                     active
                       ? 'border-blue-500 bg-blue-100 text-blue-700 shadow-[0_0_10px_2px_rgba(42,120,214,0.35)]'
@@ -176,7 +197,14 @@ export function TypingMode({ range, pushToast, onRestart }: TypingModeProps) {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Escape' && setSelectedZ(null)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setSelectedZ(null)
+                  if (e.key === 'Enter') {
+                    // 한글 조합 중 Enter는 무시 (브라우저에 따라 Enter가 두 번 들어오는 문제 방지)
+                    e.preventDefault()
+                    if (!e.nativeEvent.isComposing) submit()
+                  }
+                }}
                 placeholder="원소 기호 또는 이름 (예: Fe, 철, Iron)"
                 autoComplete="off"
                 spellCheck={false}

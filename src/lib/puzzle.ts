@@ -1,5 +1,6 @@
 import type { ChemicalElement } from '../types/chemistry'
 import { CATEGORY_THEME } from '../theme/categoryColors'
+import { matchesName, matchesSymbol } from './answers'
 import { PHASE_LABEL } from './phase'
 
 /* ------------------------------ 점수 ------------------------------ */
@@ -59,38 +60,9 @@ export function directionHint(target: ChemicalElement, dropped: ChemicalElement)
 
 /* ------------------------------ 타이핑 판정 ------------------------------ */
 
-/** 영문명 이표기 허용 */
-const EN_ALIASES: Record<number, string[]> = {
-  13: ['aluminum'],
-  16: ['sulphur'],
-  55: ['cesium'],
-}
-
-/** 한국어 옛 이름/이표기 허용 */
-const KO_ALIASES: Record<number, string[]> = {
-  9: ['불소'],
-  11: ['소듐'],
-  19: ['포타슘'],
-  22: ['티타늄', '티탄'],
-  24: ['크롬'],
-  25: ['망간'],
-  32: ['게르마늄'],
-  35: ['브롬'],
-  42: ['몰리브덴'],
-  51: ['안티몬'],
-  53: ['요오드'],
-  54: ['크세논'],
-  73: ['탄탈'],
-}
-
-const norm = (s: string) => s.trim().replace(/\s+/g, '').toLowerCase()
-
 /** 기호(대소문자 무시) 또는 한국어/영어 이름이 맞으면 정답 */
 export function isCorrectAnswer(input: string, el: ChemicalElement): boolean {
-  const a = norm(input)
-  if (!a) return false
-  const accepted = [el.symbol, el.nameKo, el.nameEn, ...(EN_ALIASES[el.atomicNumber] ?? []), ...(KO_ALIASES[el.atomicNumber] ?? [])]
-  return accepted.some((x) => norm(x) === a)
+  return matchesSymbol(input, el).match || matchesName(input, el)
 }
 
 /**

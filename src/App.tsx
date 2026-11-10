@@ -1,10 +1,22 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useState } from 'react'
+import { Loader2 } from 'lucide-react'
+import { lazy, Suspense, useState } from 'react'
 import { AppHeader } from './components/AppHeader'
 import type { ModeId } from './components/tabs'
-import { FlashcardMode } from './features/flashcards/FlashcardMode'
-import { PuzzleMode } from './features/puzzle/PuzzleMode'
 import { BasicMode } from './features/table/BasicMode'
+
+// 기본 모드 외에는 해당 탭을 열 때 불러온다 (코드 분할)
+const PuzzleMode = lazy(() => import('./features/puzzle/PuzzleMode').then((m) => ({ default: m.PuzzleMode })))
+const FlashcardMode = lazy(() => import('./features/flashcards/FlashcardMode').then((m) => ({ default: m.FlashcardMode })))
+const QuizMode = lazy(() => import('./features/quiz/QuizMode').then((m) => ({ default: m.QuizMode })))
+
+function Loading() {
+  return (
+    <div className="flex items-center justify-center gap-2 py-24 text-sm text-slate-500">
+      <Loader2 className="h-5 w-5 animate-spin text-lab-accent" /> 불러오는 중…
+    </div>
+  )
+}
 
 function App() {
   const [mode, setMode] = useState<ModeId>('table')
@@ -21,9 +33,12 @@ function App() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.15 }}
           >
-            {mode === 'table' && <BasicMode />}
-            {mode === 'puzzle' && <PuzzleMode />}
-            {mode === 'flashcards' && <FlashcardMode />}
+            <Suspense fallback={<Loading />}>
+              {mode === 'table' && <BasicMode />}
+              {mode === 'puzzle' && <PuzzleMode />}
+              {mode === 'flashcards' && <FlashcardMode />}
+              {mode === 'quiz' && <QuizMode />}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>

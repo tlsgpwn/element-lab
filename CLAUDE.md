@@ -1,6 +1,6 @@
 # ElementLab — 프로젝트 규칙 (CLAUDE.md)
 
-118개 원소 전체를 다루는 **주기율표 학습 웹앱**. 세 가지 모드: 기본(분류 보기) · 퍼즐 · 플래시카드.
+118개 원소 전체를 다루는 **주기율표 학습 웹앱**. 네 가지 모드: 기본(분류 보기) · 퍼즐 · 플래시카드 · 퀴즈.
 **이 문서의 규칙은 모든 작업에서 엄격히 따른다.** 규칙을 바꿔야 할 때는 먼저 이 파일을 수정한 뒤 코드를 바꾼다.
 
 ---
@@ -30,7 +30,7 @@
 export interface SaveData {
   version: 2;
   reviewElements: number[];                 // 플래시카드 '오답 플래시'(나중에 다시 볼 원소) 원자 번호
-  puzzleRange: { from: number; to: number }; // 마지막으로 고른 퍼즐 범위 (1~118)
+  puzzleRange: { from: number; to: number }; // 마지막으로 고른 퍼즐·퀴즈 공용 범위 (1~118)
 }
 ```
 
@@ -81,14 +81,15 @@ export interface ChemicalElement {
 src/
   types/        # chemistry.ts, save.ts
   data/         # elements.ts (원소 데이터)
-  lib/          # storage.ts, classify.ts(전형/전이·금속/비금속·전기음성도 단계), puzzle.ts, random.ts, format.ts, phase.ts — 순수 함수
+  lib/          # storage.ts, classify.ts(전형/전이·금속/비금속·전기음성도 단계), answers.ts(정답 판정·이표기), puzzle.ts, quiz.ts, random.ts, format.ts, phase.ts — 순수 함수
   theme/        # categoryColors.ts, vizColors.ts
   hooks/        # useSaveData, useGameSession, useToasts
-  components/   # AppHeader, ElementTile, ElementDetailModal, Modal, ToastStack, PeriodicGrid 등 재사용 UI
+  components/   # AppHeader, ElementTile, ElementDetailModal, Modal, ToastStack, PeriodicGrid, RangePicker 등 재사용 UI
   features/
     table/      # 기본 모드 (분류 보기)
     puzzle/     # 퍼즐 모드 (범위 설정 → 드래그/타이핑)
     flashcards/ # 플래시카드 모드 (물음표 칸 뒤집기, 오답 플래시)
+    quiz/       # 퀴즈 모드 (번호↔이름·기호 주관식)
 ```
 
 ## 5-1. 모드별 규칙
@@ -98,12 +99,19 @@ src/
   - 전형 = 1·2·13~18족, 전이 = 3~12족 + 란타넘족·악티늄족.
   - 금속/비금속/준금속은 `category`로 판정(준금속 B·Si·Ge·As·Sb·Te).
   - 칸을 누르면 원소 상세 창을 연다.
-- **퍼즐 모드**: 먼저 원자 번호 범위(from~to)와 방식(드래그/타이핑)을 고른 뒤 시작한다. 범위는 `puzzleRange`로 저장한다.
+- **범위 선택**: 퍼즐과 퀴즈는 공용 `RangePicker`(빠른 선택 + 직접 입력)로 원자 번호 범위를 고르고, `puzzleRange`에 함께 저장한다.
+- **퍼즐 모드**: 먼저 원자 번호 범위(from~to)와 방식(드래그/타이핑)을 고른 뒤 시작한다.
+  - 타이핑 퍼즐은 정답 후 **남은 빈칸 중 무작위 칸**으로 이동한다(기본). 설정에서 '번호 순서'를 고를 수 있다. 시작할 때도 무작위 칸이 바로 선택된다.
   - 드래그는 `DndContext` + `DragOverlay`. 정답 칸 위에서는 `dropAnimation={null}`(스냅), 그 외엔 덱으로 복귀. 스크린 리더 안내는 한국어.
   - 힌트·정답 판정·콤보 점수는 `src/lib/puzzle.ts`의 순수 함수에만 둔다. 점수/콤보/타이머는 `useGameSession`, 알림은 `useToasts` + `ToastStack`.
 - **플래시카드 모드**: 모든 칸이 "?"이고 클릭(또는 Enter/Space)하면 뒤집혀 원소가 보인다.
   - **Alt+X**: 마지막으로 누르거나 포커스한 원소를 '오답 플래시'(`reviewElements`)에 넣고 빼기(토글). 키 판정은 `event.code === 'KeyX'`(한글 자판에서도 동작). 같은 기능의 버튼도 둔다(모바일).
   - [오답만 복습]을 켜면 오답 플래시 원소만 "?"로 남기고 나머지는 흐리게 한다.
+- **퀴즈 모드**: 유형 4가지 — 번호→이름, 기호+이름→번호, 이름→기호, 기호→이름. 범위와 문제 수를 고른 뒤 무작위 순서로(중복 없이) 출제한다.
+  - 정답 판정은 `src/lib/quiz.ts`의 `gradeAnswer`, 이름·기호 일치 판정과 이표기(요오드·나트륨 등)는 `src/lib/answers.ts`에만 둔다(퍼즐 타이핑도 같은 함수를 쓴다).
+  - 이름 문제는 한글·영문 이름(이표기 포함)만 정답, 기호 문제는 대소문자가 달라도 정답으로 하되 올바른 표기를 안내한다.
+  - 틀린 문제는 결과 화면에서 오답 플래시에 한꺼번에 저장할 수 있다. 문제를 푸는 중에도 Alt+X로 현재 원소를 오답 플래시에 넣고 뺄 수 있다.
+- **한글 입력(IME)**: 텍스트 입력의 Enter 처리에서는 조합 중(`event.nativeEvent.isComposing`)인 Enter를 무시한다. 브라우저에 따라 Enter가 두 번 들어와 제출과 다음 동작이 한꺼번에 일어나는 것을 막기 위해서다.
 
 ## 5-2. 배포
 

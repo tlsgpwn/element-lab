@@ -30,6 +30,17 @@ export function SaveProvider({ children }: { children: ReactNode }) {
     setSave((prev) => ({ ...prev, reviewElements: prev.reviewElements.filter((x) => x !== z) }))
   }, [])
 
+  const addReview = useCallback((zs: number[]) => {
+    const fresh = [...new Set(zs)].filter((z) => !latest.current.reviewElements.includes(z))
+    if (fresh.length) {
+      setSave((prev) => ({
+        ...prev,
+        reviewElements: [...new Set([...prev.reviewElements, ...fresh])].sort((a, b) => a - b),
+      }))
+    }
+    return fresh.length
+  }, [])
+
   const clearReview = useCallback(() => setSave((prev) => ({ ...prev, reviewElements: [] })), [])
 
   const setPuzzleRange = useCallback((range: PuzzleRange) => {
@@ -37,8 +48,8 @@ export function SaveProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<SaveContextValue>(
-    () => ({ save, toggleReview, removeReview, clearReview, setPuzzleRange }),
-    [save, toggleReview, removeReview, clearReview, setPuzzleRange],
+    () => ({ save, toggleReview, removeReview, addReview, clearReview, setPuzzleRange }),
+    [save, toggleReview, removeReview, addReview, clearReview, setPuzzleRange],
   )
   return <SaveContext.Provider value={value}>{children}</SaveContext.Provider>
 }
