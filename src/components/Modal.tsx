@@ -22,7 +22,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -32,17 +32,17 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl ${size === 'xl' ? 'max-w-3xl' : 'max-w-md'} border border-lab-border bg-lab-panel p-6 shadow-2xl shadow-cyan-500/10`}
+            className={`max-h-[90vh] w-full overflow-y-auto rounded-2xl ${size === 'xl' ? 'max-w-3xl' : 'max-w-md'} border border-lab-border bg-white p-6 shadow-2xl`}
             initial={{ scale: 0.95, y: 12 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, y: 12 }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">{title}</h2>
+              <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1 text-slate-400 transition hover:bg-white/5 hover:text-white"
+                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 aria-label="닫기"
               >
                 <X className="h-5 w-5" />

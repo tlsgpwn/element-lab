@@ -4,9 +4,9 @@ import { PHASE_LABEL } from '../lib/phase'
 
 const ICONS = { solid: Box, liquid: Droplet, gas: Wind } as const
 const COLORS: Record<Phase, string> = {
-  solid: 'text-amber-300',
-  liquid: 'text-sky-300',
-  gas: 'text-emerald-300',
+  solid: 'text-amber-600',
+  liquid: 'text-sky-600',
+  gas: 'text-emerald-600',
 }
 
 export function PhaseIcon({ phase, className = 'h-4 w-4', ...rest }: { phase: Phase } & LucideProps) {

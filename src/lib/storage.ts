@@ -1,83 +1,75 @@
-import type { ElementProgress, SaveData } from '../types/save'
-import { todayKey } from './format'
+import type { PuzzleRange, SaveData } from '../types/save'
 
 /** localStorage 키 — 이 상수 외의 키를 사용하지 않는다 (CLAUDE.md §2) */
-export const SAVE_KEY = 'element_lab_save_v1'
+export const SAVE_KEY = 'element_lab_save_v2'
+/** 이전 버전 키 (마이그레이션 후 삭제) */
+const LEGACY_KEY_V1 = 'element_lab_save_v1'
 
-export const DAILY_GOAL_OPTIONS = [3, 5, 10] as const
+export const ELEMENT_COUNT = 118
 
 export function createDefaultSave(): SaveData {
-  return {
-    version: 1,
-    unlockedElements: [],
-    dailyGoal: 5,
-    elementProgress: {},
-    discoveredMolecules: [],
-    dailyLog: { date: todayKey(), learned: [] },
-  }
+  return { version: 2, reviewElements: [], puzzleRange: { from: 1, to: 20 } }
 }
 
-export function defaultProgress(): ElementProgress {
-  return { weight: 1, wrongCount: 0, reviewCount: 0, lastReviewedAt: null }
+const isAtomicNumber = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= ELEMENT_COUNT
+
+export function clampRange(range: PuzzleRange): PuzzleRange {
+  const a = Math.min(ELEMENT_COUNT, Math.max(1, Math.round(range.from)))
+  const b = Math.min(ELEMENT_COUNT, Math.max(1, Math.round(range.to)))
+  return { from: Math.min(a, b), to: Math.max(a, b) }
 }
 
-const isNumberArray = (v: unknown): v is number[] =>
-  Array.isArray(v) && v.every((x) => typeof x === 'number')
-
-const isStringArray = (v: unknown): v is string[] =>
-  Array.isArray(v) && v.every((x) => typeof x === 'string')
-
-/** 저장 데이터를 기본값과 병합하고, 날짜가 바뀌었으면 dailyLog를 초기화한다 */
+/** 저장 데이터를 기본값과 병합한다 (필드 누락·잘못된 값에도 앱이 깨지지 않게) */
 export function normalizeSave(raw: unknown): SaveData {
   const base = createDefaultSave()
   if (typeof raw !== 'object' || raw === null) return base
   const r = raw as Partial<Record<keyof SaveData, unknown>>
+  const review = Array.isArray(r.reviewElements) ? [...new Set(r.reviewElements.filter(isAtomicNumber))] : []
+  let range = base.puzzleRange
+  if (typeof r.puzzleRange === 'object' && r.puzzleRange !== null) {
+    const p = r.puzzleRange as Partial<PuzzleRange>
+    if (typeof p.from === 'number' && typeof p.to === 'number') range = clampRange({ from: p.from, to: p.to })
+  }
+  return { version: 2, reviewElements: review, puzzleRange: range }
+}
 
-  const progress: Record<number, ElementProgress> = {}
-  if (typeof r.elementProgress === 'object' && r.elementProgress !== null) {
-    for (const [k, v] of Object.entries(r.elementProgress as Record<string, unknown>)) {
-      if (typeof v !== 'object' || v === null) continue
-      const p = v as Partial<ElementProgress>
-      progress[Number(k)] = {
-        weight: typeof p.weight === 'number' ? p.weight : 1,
-        wrongCount: typeof p.wrongCount === 'number' ? p.wrongCount : 0,
-        reviewCount: typeof p.reviewCount === 'number' ? p.reviewCount : 0,
-        lastReviewedAt: typeof p.lastReviewedAt === 'number' ? p.lastReviewedAt : null,
-      }
+/** v1(학습 앱 시절) → v2: 퀴즈에서 틀린 적 있는 원소를 오답 플래시로 옮긴다 */
+export function migrateV1(raw: unknown): SaveData {
+  const save = createDefaultSave()
+  if (typeof raw !== 'object' || raw === null) return save
+  const progress = (raw as { elementProgress?: unknown }).elementProgress
+  if (typeof progress === 'object' && progress !== null) {
+    for (const [k, v] of Object.entries(progress as Record<string, unknown>)) {
+      const wrong = typeof v === 'object' && v !== null ? (v as { wrongCount?: unknown }).wrongCount : 0
+      const z = Number(k)
+      if (isAtomicNumber(z) && typeof wrong === 'number' && wrong > 0) save.reviewElements.push(z)
     }
   }
-
-  let dailyLog = base.dailyLog
-  if (typeof r.dailyLog === 'object' && r.dailyLog !== null) {
-    const log = r.dailyLog as { date?: unknown; learned?: unknown }
-    if (log.date === todayKey() && isNumberArray(log.learned)) {
-      dailyLog = { date: log.date, learned: log.learned }
-    }
-  }
-
-  return {
-    version: 1,
-    unlockedElements: isNumberArray(r.unlockedElements) ? [...new Set(r.unlockedElements)] : [],
-    dailyGoal: typeof r.dailyGoal === 'number' && r.dailyGoal > 0 ? r.dailyGoal : base.dailyGoal,
-    elementProgress: progress,
-    discoveredMolecules: isStringArray(r.discoveredMolecules) ? r.discoveredMolecules : [],
-    dailyLog,
-  }
+  save.reviewElements.sort((a, b) => a - b)
+  return save
 }
 
 export function loadSave(): SaveData {
   try {
     const json = localStorage.getItem(SAVE_KEY)
-    return normalizeSave(json ? JSON.parse(json) : null)
+    if (json) return normalizeSave(JSON.parse(json))
+    const legacy = localStorage.getItem(LEGACY_KEY_V1)
+    if (legacy) {
+      const migrated = migrateV1(JSON.parse(legacy))
+      localStorage.setItem(SAVE_KEY, JSON.stringify(migrated))
+      localStorage.removeItem(LEGACY_KEY_V1)
+      return migrated
+    }
   } catch {
-    return createDefaultSave()
+    // 파싱 실패·접근 불가: 기본값으로 시작
   }
+  return createDefaultSave()
 }
 
 export function writeSave(data: SaveData): void {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(data))
   } catch {
-    // 저장 공간 부족·프라이빗 모드 등: 앱 동작은 메모리 상태로 계속한다
+    // 저장 공간 부족·프라이빗 모드 등: 메모리 상태로 계속한다
   }
 }

@@ -5,16 +5,18 @@ import {
 import { AnimatePresence, motion, useAnimationControls } from 'framer-motion'
 import { GripVertical } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ELEMENT_BY_Z } from '../../data/elements'
+import { ELEMENTS, ELEMENT_BY_Z } from '../../data/elements'
 import { useGameSession } from '../../hooks/useGameSession'
 import type { Toast } from '../../hooks/useToasts'
 import { directionHint, progressiveHint } from '../../lib/puzzle'
-import { shuffle } from '../../lib/spacedRepetition'
+import { shuffle } from '../../lib/random'
 import { CATEGORY_THEME } from '../../theme/categoryColors'
 import type { ChemicalElement } from '../../types/chemistry'
+import type { PuzzleRange } from '../../types/save'
+import { ElementTile } from '../../components/ElementTile'
+import { PeriodicGrid } from '../../components/PeriodicGrid'
 import { CompletePanel } from './CompletePanel'
 import { GameHud } from './GameHud'
-import { PeriodicGrid } from './PeriodicGrid'
 
 type Flash = { z: number; kind: 'correct' | 'wrong'; gained?: number; nonce: number }
 
@@ -36,14 +38,14 @@ const SCREEN_READER_INSTRUCTIONS = {
 }
 
 interface DragPuzzleModeProps {
-  unlockedZs: number[]
+  range: PuzzleRange
   pushToast: (t: Omit<Toast, 'id'>) => void
   onRestart: () => void
 }
 
-export function DragPuzzleMode({ unlockedZs, pushToast, onRestart }: DragPuzzleModeProps) {
+export function DragPuzzleMode({ range, pushToast, onRestart }: DragPuzzleModeProps) {
   const [deck] = useState<ChemicalElement[]>(() =>
-    shuffle(unlockedZs.map((z) => ELEMENT_BY_Z.get(z)).filter((e): e is ChemicalElement => !!e)),
+    shuffle(ELEMENTS.filter((e) => e.atomicNumber >= range.from && e.atomicNumber <= range.to)),
   )
   const [placed, setPlaced] = useState<Set<number>>(() => new Set())
   const [activeZ, setActiveZ] = useState<number | null>(null)
@@ -127,7 +129,7 @@ export function DragPuzzleMode({ unlockedZs, pushToast, onRestart }: DragPuzzleM
       <div className="space-y-4">
         <GameHud stats={stats} done={placed.size} total={deck.length} onRestart={onRestart} />
 
-        <div className="rounded-2xl border border-lab-border bg-lab-panel/50 p-3">
+        <div className="rounded-2xl border border-lab-border bg-white p-3">
           <PeriodicGrid
             emphasizeAxes
             renderCell={(el) => (
@@ -144,8 +146,8 @@ export function DragPuzzleMode({ unlockedZs, pushToast, onRestart }: DragPuzzleM
         {done ? (
           <CompletePanel stats={stats} total={deck.length} onRestart={onRestart} />
         ) : (
-          <div className="sticky bottom-0 z-30 -mx-4 border-t border-lab-border bg-lab-bg/95 px-4 pt-3 pb-4 backdrop-blur-md">
-            <div className="mb-2 flex items-center justify-between text-xs text-slate-400">
+          <div className="sticky bottom-0 z-30 -mx-4 border-t border-lab-border bg-white/95 px-4 pt-3 pb-4 shadow-[0_-4px_12px_rgba(15,23,42,0.06)] backdrop-blur-md">
+            <div className="mb-2 flex items-center justify-between text-xs text-slate-500">
               <span className="flex items-center gap-1.5">
                 <GripVertical className="h-3.5 w-3.5" /> 원소 덱 — 카드를 끌어 주기율표의 올바른 칸에 놓으세요
               </span>
@@ -177,12 +179,12 @@ function CardFace({ el, lifted = false }: { el: ChemicalElement; lifted?: boolea
   const t = CATEGORY_THEME[el.category]
   return (
     <div
-      className={`flex h-[72px] w-[64px] cursor-grab flex-col items-center justify-center rounded-xl border-2 ${t.border} ${t.gradient} bg-slate-900 select-none ${
-        lifted ? `scale-110 rotate-3 cursor-grabbing shadow-2xl ${t.glow}` : 'shadow-md'
+      className={`flex h-[72px] w-[64px] cursor-grab flex-col items-center justify-center rounded-xl border-2 ${t.border} ${t.bg} select-none ${
+        lifted ? 'scale-110 rotate-3 cursor-grabbing shadow-xl' : 'shadow-sm'
       }`}
     >
       <span className={`text-xl font-black ${t.text}`}>{el.symbol}</span>
-      <span className="w-full truncate px-1 text-center text-[10px] text-slate-200">{el.nameKo}</span>
+      <span className="w-full truncate px-1 text-center text-[10px] text-slate-600">{el.nameKo}</span>
     </div>
   )
 }
@@ -233,13 +235,11 @@ function DropCell({
           initial={justPlaced ? { scale: 1.5, opacity: 0.4 } : false}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-          className={`flex h-full w-full flex-col items-center justify-center rounded-md border ${t.border} ${t.gradient} ${
-            justPlaced ? 'shadow-[0_0_18px_4px_rgba(52,211,153,0.7)] ring-2 ring-emerald-400' : ''
+          className={`h-full w-full rounded-md border ${t.border} ${t.bg} text-slate-600 ${
+            justPlaced ? 'shadow-[0_0_14px_3px_rgba(16,185,129,0.55)] ring-2 ring-emerald-500' : ''
           } transition-shadow duration-700`}
         >
-          <span className="absolute top-0.5 left-1 font-mono text-[8px] text-slate-300">{el.atomicNumber}</span>
-          <span className={`text-sm font-black ${t.text}`}>{el.symbol}</span>
-          <span className="w-full truncate px-0.5 text-center text-[8px] text-slate-300">{el.nameKo}</span>
+          <ElementTile element={el} symbolClass={t.text} nameClass="text-slate-600" />
         </motion.div>
         <AnimatePresence>
           {justPlaced && flash?.gained && (
@@ -248,7 +248,7 @@ function DropCell({
               initial={{ opacity: 0, y: 0 }}
               animate={{ opacity: [0, 1, 1, 0], y: -34 }}
               transition={{ duration: 0.9 }}
-              className="pointer-events-none absolute inset-x-0 top-0 z-20 text-center font-mono text-sm font-bold text-emerald-300 drop-shadow"
+              className="pointer-events-none absolute inset-x-0 top-0 z-20 text-center font-mono text-sm font-bold text-emerald-600"
             >
               +{flash.gained}
             </motion.span>
@@ -267,12 +267,12 @@ function DropCell({
       transition={{ duration: 0.4 }}
       className={`h-full w-full rounded-md border transition-colors ${
         wrong
-          ? 'border-rose-500 bg-rose-500/25 shadow-[0_0_14px_2px_rgba(244,63,94,0.55)]'
+          ? 'border-rose-500 bg-rose-100 shadow-[0_0_12px_2px_rgba(244,63,94,0.45)]'
           : isOver
-            ? 'border-cyan-300 bg-cyan-400/20'
+            ? 'border-blue-500 bg-blue-100'
             : dragging
-              ? 'border-slate-600/70 bg-slate-800/40'
-              : 'border-slate-700/50 bg-slate-900/30'
+              ? 'border-slate-300 bg-slate-100'
+              : 'border-slate-200 bg-slate-50'
       }`}
     />
   )

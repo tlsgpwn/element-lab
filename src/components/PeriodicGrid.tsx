@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { ELEMENTS } from '../../data/elements'
-import type { ChemicalElement } from '../../types/chemistry'
+import { ELEMENTS } from '../data/elements'
+import type { ChemicalElement } from '../types/chemistry'
 
 interface PeriodicGridProps {
   /** 각 원소 칸의 내용. 칸 크기는 그리드가 결정한다 */
@@ -17,11 +17,11 @@ const PERIODS = [1, 2, 3, 4, 5, 6, 7]
  * CSS grid: 1열 = 주기 라벨, 1행 = 족 라벨, 9행 = 간격, 10·11행 = 란타넘족·악티늄족
  */
 export function PeriodicGrid({ renderCell, emphasizeAxes = false }: PeriodicGridProps) {
-  const axis = emphasizeAxes ? 'text-cyan-300/90 font-semibold' : 'text-slate-500'
+  const axis = emphasizeAxes ? 'text-blue-700 font-semibold' : 'text-slate-400'
   return (
     <div className="overflow-x-auto pb-2">
       <div
-        className="grid min-w-[880px] gap-1"
+        className="grid min-w-[980px] gap-1"
         style={{
           gridTemplateColumns: '1.75rem repeat(18, minmax(0, 1fr))',
           gridTemplateRows: 'auto repeat(7, auto) 0.75rem auto auto',
@@ -49,7 +49,7 @@ export function PeriodicGrid({ renderCell, emphasizeAxes = false }: PeriodicGrid
         ].map((f) => (
           <div
             key={f.label}
-            className="flex aspect-square flex-col items-center justify-center rounded-md border border-dashed border-slate-700/70 text-center text-[9px] leading-tight text-slate-500"
+            className="flex aspect-square flex-col items-center justify-center rounded-md border border-dashed border-slate-300 text-center text-[9px] leading-tight text-slate-400"
             style={{ gridRow: f.row, gridColumn: 4 }}
           >
             <span className="font-mono">{f.label}</span>
@@ -62,7 +62,7 @@ export function PeriodicGrid({ renderCell, emphasizeAxes = false }: PeriodicGrid
         ].map((f) => (
           <div
             key={f.name}
-            className="flex items-center justify-end pr-1 text-[10px] text-slate-500"
+            className="flex items-center justify-end pr-1 text-[10px] text-slate-400"
             style={{ gridRow: f.row, gridColumn: '1 / span 3' }}
           >
             {f.name}

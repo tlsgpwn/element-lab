@@ -1,21 +1,18 @@
 @import "tailwindcss";
 
-/* 다크 모드 기본: html.dark 클래스 기반 */
-@custom-variant dark (&:where(.dark, .dark *));
-
 @theme {
-  --font-sans: "Pretendard", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Pretendard", system-ui, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "JetBrains Mono", Consolas, monospace;
-  --color-lab-bg: #0b1020;
-  --color-lab-panel: #121a2e;
-  --color-lab-border: #1f2a44;
-  --color-lab-accent: #22d3ee;
+  --color-lab-bg: #f8fafc;
+  --color-lab-panel: #ffffff;
+  --color-lab-border: #e2e8f0;
+  --color-lab-accent: #2a78d6;
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  @apply min-h-screen bg-lab-bg text-slate-200 antialiased;
+  @apply min-h-screen bg-lab-bg text-slate-800 antialiased;
 }

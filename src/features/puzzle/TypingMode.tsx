@@ -2,22 +2,24 @@ import { AnimatePresence, motion, useAnimationControls } from 'framer-motion'
 import { Eye, Keyboard, MousePointerClick, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ELEMENT_BY_Z } from '../../data/elements'
+import { ElementTile } from '../../components/ElementTile'
+import { PeriodicGrid } from '../../components/PeriodicGrid'
+import type { PuzzleRange } from '../../types/save'
 import { useGameSession } from '../../hooks/useGameSession'
 import type { Toast } from '../../hooks/useToasts'
 import { isCorrectAnswer, positionLabel, typingHint } from '../../lib/puzzle'
 import { CATEGORY_THEME } from '../../theme/categoryColors'
 import { CompletePanel } from './CompletePanel'
 import { GameHud } from './GameHud'
-import { PeriodicGrid } from './PeriodicGrid'
 
 interface TypingModeProps {
-  unlockedZs: number[]
+  range: PuzzleRange
   pushToast: (t: Omit<Toast, 'id'>) => void
   onRestart: () => void
 }
 
-export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps) {
-  const targets = useMemo(() => [...unlockedZs].sort((a, b) => a - b), [unlockedZs])
+export function TypingMode({ range, pushToast, onRestart }: TypingModeProps) {
+  const targets = useMemo(() => Array.from({ length: range.to - range.from + 1 }, (_, i) => range.from + i), [range.from, range.to])
   const targetSet = useMemo(() => new Set(targets), [targets])
   const [filled, setFilled] = useState<Set<number>>(() => new Set())
   const [revealed, setRevealed] = useState<Set<number>>(() => new Set())
@@ -91,7 +93,7 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
     <div className="space-y-4">
       <GameHud stats={stats} done={doneCount} total={targets.length} onRestart={onRestart} />
 
-      <div className="rounded-2xl border border-lab-border bg-lab-panel/50 p-3">
+      <div className="rounded-2xl border border-lab-border bg-white p-3">
         <PeriodicGrid
           emphasizeAxes
           renderCell={(el) => {
@@ -106,12 +108,11 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
                     initial={pop ? { scale: 1.5 } : false}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                    className={`flex h-full w-full flex-col items-center justify-center rounded-md border ${
-                      isRevealed ? 'border-slate-500/60 bg-slate-700/40 opacity-70' : `${t.border} ${t.gradient}`
-                    } ${pop ? 'shadow-[0_0_18px_4px_rgba(52,211,153,0.7)] ring-2 ring-emerald-400' : ''}`}
+                    className={`h-full w-full rounded-md border text-slate-600 ${
+                      isRevealed ? 'border-slate-300 bg-slate-100 opacity-70' : `${t.border} ${t.bg}`
+                    } ${pop ? 'shadow-[0_0_14px_3px_rgba(16,185,129,0.55)] ring-2 ring-emerald-500' : ''}`}
                   >
-                    <span className={`text-sm font-black ${isRevealed ? 'text-slate-300' : t.text}`}>{el.symbol}</span>
-                    <span className="w-full truncate px-0.5 text-center text-[8px] text-slate-300">{el.nameKo}</span>
+                    <ElementTile element={el} symbolClass={isRevealed ? 'text-slate-500' : t.text} nameClass="text-slate-600" />
                   </motion.div>
                   <AnimatePresence>
                     {pop && (
@@ -119,7 +120,7 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
                         initial={{ opacity: 0, y: 0 }}
                         animate={{ opacity: [0, 1, 1, 0], y: -34 }}
                         transition={{ duration: 0.9 }}
-                        className="pointer-events-none absolute inset-x-0 top-0 z-20 text-center font-mono text-sm font-bold text-emerald-300"
+                        className="pointer-events-none absolute inset-x-0 top-0 z-20 text-center font-mono text-sm font-bold text-emerald-600"
                       >
                         +{lastCorrect.gained}
                       </motion.span>
@@ -139,15 +140,15 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
                   aria-label={`${positionLabel(el)} 빈칸`}
                   className={`flex h-full w-full items-center justify-center rounded-md border border-dashed font-mono text-sm transition ${
                     active
-                      ? 'border-cyan-300 bg-cyan-400/25 text-cyan-100 shadow-[0_0_14px_2px_rgba(34,211,238,0.5)]'
-                      : 'border-cyan-500/50 bg-cyan-500/5 text-cyan-500/70 hover:bg-cyan-500/15'
+                      ? 'border-blue-500 bg-blue-100 text-blue-700 shadow-[0_0_10px_2px_rgba(42,120,214,0.35)]'
+                      : 'border-blue-300 bg-blue-50/60 text-blue-400 hover:bg-blue-100'
                   }`}
                 >
                   ?
                 </button>
               )
             }
-            return <div className="h-full w-full rounded-md border border-slate-800/80 bg-slate-900/20" />
+            return <div className="h-full w-full rounded-md border border-slate-200 bg-slate-50" />
           }}
         />
       </div>
@@ -155,7 +156,7 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
       {done ? (
         <CompletePanel stats={stats} total={targets.length} onRestart={onRestart} />
       ) : (
-        <div className="sticky bottom-0 z-30 -mx-4 border-t border-lab-border bg-lab-bg/95 px-4 pt-3 pb-4 backdrop-blur-md">
+        <div className="sticky bottom-0 z-30 -mx-4 border-t border-lab-border bg-white/95 px-4 pt-3 pb-4 shadow-[0_-4px_12px_rgba(15,23,42,0.06)] backdrop-blur-md">
           {selected ? (
             <motion.form
               animate={shake}
@@ -165,10 +166,10 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
               }}
               className="mx-auto flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-center"
             >
-              <div className="flex items-center gap-2 text-sm text-slate-300 sm:w-44">
+              <div className="flex items-center gap-2 text-sm text-slate-600 sm:w-44">
                 <Keyboard className="h-4 w-4 text-lab-accent" />
                 <span>
-                  <b className="text-white">{positionLabel(selected)}</b> 칸
+                  <b className="text-slate-900">{positionLabel(selected)}</b> 칸
                 </span>
               </div>
               <input
@@ -179,12 +180,12 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
                 placeholder="원소 기호 또는 이름 (예: Fe, 철, Iron)"
                 autoComplete="off"
                 spellCheck={false}
-                className="flex-1 rounded-xl border border-lab-border bg-slate-900/80 px-4 py-2.5 text-white placeholder:text-slate-500 focus:border-lab-accent focus:outline-none"
+                className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-lab-accent focus:outline-none"
               />
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 px-4 py-2.5 text-sm font-semibold text-white"
+                  className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
                 >
                   입력
                 </button>
@@ -192,7 +193,7 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
                   type="button"
                   onClick={giveUp}
                   title="정답 보기 (점수 없음, 콤보 초기화)"
-                  className="flex items-center gap-1 rounded-xl border border-lab-border px-3 py-2.5 text-sm text-slate-300 hover:bg-white/5"
+                  className="flex items-center gap-1 rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
                 >
                   <Eye className="h-4 w-4" /> 정답
                 </button>
@@ -200,17 +201,17 @@ export function TypingMode({ unlockedZs, pushToast, onRestart }: TypingModeProps
                   type="button"
                   onClick={() => setSelectedZ(null)}
                   aria-label="선택 해제"
-                  className="rounded-xl border border-lab-border px-2.5 text-slate-400 hover:bg-white/5"
+                  className="rounded-xl border border-slate-300 px-2.5 text-slate-500 hover:bg-slate-100"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             </motion.form>
           ) : (
-            <p className="flex items-center justify-center gap-2 py-2 text-sm text-slate-400">
+            <p className="flex items-center justify-center gap-2 py-2 text-sm text-slate-500">
               <MousePointerClick className="h-4 w-4 text-lab-accent" />
               <span>
-                <b className="text-cyan-300">?</b> 표시된 빈칸(해금한 원소 자리)을 클릭하고 기호나 이름을 입력하세요.
+                <b className="text-blue-600">?</b> 표시된 빈칸(고른 범위의 원소 자리)을 클릭하고 기호나 이름을 입력하세요.
               </span>
             </p>
           )}

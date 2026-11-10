@@ -21,10 +21,3 @@ export function formatMass(mass: number): string {
   return Number.isInteger(mass) ? `[${mass}]` : mass.toString()
 }
 
-/** 로컬 날짜 YYYY-MM-DD */
-export function todayKey(date = new Date()): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
