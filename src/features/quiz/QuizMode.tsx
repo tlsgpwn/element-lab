@@ -5,7 +5,7 @@ import { ToastStack } from '../../components/ToastStack'
 import { ELEMENTS, ELEMENT_BY_Z } from '../../data/elements'
 import { useSaveData } from '../../hooks/useSaveData'
 import { useToasts } from '../../hooks/useToasts'
-import { buildQuestions, QUESTION_COUNTS, QUIZ_KIND_BY_ID, QUIZ_KINDS, type QuizAnswer, type QuizKind } from '../../lib/quiz'
+import { buildQuestions, eligiblePool, QUESTION_COUNTS, QUIZ_KIND_BY_ID, QUIZ_KINDS, type QuizAnswer, type QuizKind } from '../../lib/quiz'
 import { shuffle } from '../../lib/random'
 import { parseRange, rangeLabel } from '../../lib/range'
 import type { ChemicalElement } from '../../types/chemistry'
@@ -27,7 +27,10 @@ export function QuizMode() {
   const [result, setResult] = useState<{ answers: QuizAnswer[]; elapsedMs: number } | null>(null)
 
   const picked = parseRange(fromText, toText)
-  const poolSize = picked ? picked.to - picked.from + 1 : 0
+  // 좌표 유형은 족이 없는 란타넘족·악티늄족을 뺀 원소만 출제한다
+  const pool = picked ? eligiblePool(kind, ELEMENTS.slice(picked.from - 1, picked.to)) : []
+  const poolSize = pool.length
+  const excluded = picked ? picked.to - picked.from + 1 - poolSize : 0
   const actualCount = count === null ? poolSize : Math.min(count, poolSize)
   const range = save.puzzleRange
 
@@ -39,9 +42,9 @@ export function QuizMode() {
   }
 
   const start = () => {
-    if (!picked) return
+    if (!picked || poolSize === 0) return
     setPuzzleRange(picked)
-    begin(buildQuestions(ELEMENTS.slice(picked.from - 1, picked.to), count))
+    begin(buildQuestions(pool, count))
   }
 
   if (phase === 'play') {
@@ -56,6 +59,7 @@ export function QuizMode() {
           </button>
           <span className="rounded-full bg-blue-50 px-3 py-1 text-sm text-blue-800 ring-1 ring-blue-200">
             {QUIZ_KIND_BY_ID.get(kind)?.label} · {rangeLabel(range)}
+            {QUIZ_KIND_BY_ID.get(kind)?.needsGroup ? ' (란타넘족·악티늄족 제외)' : ''}
           </span>
         </div>
         <QuizPlay
@@ -81,7 +85,7 @@ export function QuizMode() {
           answers={result.answers}
           elapsedMs={result.elapsedMs}
           pushToast={push}
-          onRetryAll={() => begin(buildQuestions(ELEMENTS.slice(range.from - 1, range.to), count))}
+          onRetryAll={() => begin(buildQuestions(eligiblePool(kind, ELEMENTS.slice(range.from - 1, range.to)), count))}
           onRetryWrong={() =>
             begin(
               shuffle(
@@ -110,7 +114,7 @@ export function QuizMode() {
 
       <div>
         <p className="mb-2 text-xs font-semibold text-slate-500">문제 유형</p>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-3">
           {QUIZ_KINDS.map((k) => {
             const on = kind === k.id
             return (
@@ -158,17 +162,22 @@ export function QuizMode() {
             )
           })}
         </div>
-        {picked && count !== null && count > poolSize && (
-          <p className="mt-1.5 text-xs text-slate-500">범위에 원소가 {poolSize}개라 {poolSize}문제만 나와요.</p>
+        {picked && excluded > 0 && (
+          <p className="mt-1.5 text-xs text-slate-500">
+            좌표 문제에서는 족 번호가 없는 란타넘족·악티늄족 {excluded}개를 빼고 출제해요.
+          </p>
+        )}
+        {picked && poolSize > 0 && count !== null && count > poolSize && (
+          <p className="mt-1.5 text-xs text-slate-500">범위에 출제할 원소가 {poolSize}개라 {poolSize}문제만 나와요.</p>
         )}
       </div>
 
       <button
         onClick={start}
-        disabled={!picked}
+        disabled={!picked || poolSize === 0}
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-base font-bold text-white transition enabled:hover:bg-blue-700 disabled:opacity-40"
       >
-        <Play className="h-5 w-5" /> {picked ? `${actualCount}문제 시작` : '범위를 확인해 주세요'}
+        <Play className="h-5 w-5" /> {!picked ? '범위를 확인해 주세요' : poolSize === 0 ? '이 범위에는 좌표 문제를 낼 원소가 없어요' : `${actualCount}문제 시작`}
       </button>
     </div>
   )

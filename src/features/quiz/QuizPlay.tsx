@@ -3,7 +3,7 @@ import { ArrowRight, BookmarkMinus, BookmarkPlus, CheckCircle2, Flame, HelpCircl
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ElementTile } from '../../components/ElementTile'
 import { useSaveData } from '../../hooks/useSaveData'
-import { answerText, gradeAnswer, QUIZ_KIND_BY_ID, type QuizAnswer, type QuizKind } from '../../lib/quiz'
+import { answerText, gradeAnswer, positionText, QUIZ_KIND_BY_ID, type QuizAnswer, type QuizKind } from '../../lib/quiz'
 import { CATEGORY_THEME } from '../../theme/categoryColors'
 import type { ChemicalElement } from '../../types/chemistry'
 
@@ -47,6 +47,25 @@ function Prompt({ kind, el }: { kind: QuizKind; el: ChemicalElement }) {
         <>
           <p className="text-7xl font-black text-slate-900">{el.symbol}</p>
           <p className="mt-3 text-base text-slate-600">이 기호의 원소 <b>이름</b>은?</p>
+        </>
+      )
+    case 'position-to-name':
+      return (
+        <>
+          <p className="font-mono text-7xl font-black text-slate-900">{positionText(el)}</p>
+          <p className="mt-3 text-base text-slate-600">
+            {el.period}주기 {el.group}족에 있는 원소는? <span className="text-slate-400">(이름 또는 기호)</span>
+          </p>
+        </>
+      )
+    case 'name-to-position':
+      return (
+        <>
+          <p className="text-6xl font-black text-slate-900">{el.nameKo}</p>
+          <p className="mt-1 text-base text-slate-400">{el.nameEn}</p>
+          <p className="mt-3 text-base text-slate-600">
+            이 원소의 자리는 <b>(주기, 족)</b>으로? <span className="text-slate-400">예: 4, 8</span>
+          </p>
         </>
       )
   }
